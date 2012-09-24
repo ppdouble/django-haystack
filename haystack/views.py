@@ -8,6 +8,7 @@ from haystack.query import EmptySearchQuerySet
 
 
 RESULTS_PER_PAGE = getattr(settings, 'HAYSTACK_SEARCH_RESULTS_PER_PAGE', 20)
+RESULTS_PAGE_NUMBERS = getattr(settings, 'HAYSTACK_SEARCH_RESULTS_PAGE_NUMBERS', 10)
 
 
 class SearchView(object):
@@ -112,8 +113,17 @@ class SearchView(object):
             page = paginator.page(page_no)
         except InvalidPage:
             raise Http404("No such page!")
+        results_page_numbers = RESULTS_PAGE_NUMBERS
+        total_num_pages = paginator.num_pages
+        if total_num_pages <= results_page_numbers:
+            page_range = paginator.page_range
+        else:
+            if total_num_pages-page_no<results_page_numbers:
+                page_range = paginator.page_range[total_num_pages-results_page_numbers:total_num_pages]
+            else:
+                page_range = paginator.page_range[page_no-1:page_no-1+results_page_numbers]
 
-        return (paginator, page)
+        return (paginator, page, page_range)
 
     def extra_context(self):
         """
@@ -127,13 +137,14 @@ class SearchView(object):
         """
         Generates the actual HttpResponse to send back to the user.
         """
-        (paginator, page) = self.build_page()
-
+        (paginator, page, page_range) = self.build_page()
+        
         context = {
             'query': self.query,
             'form': self.form,
             'page': page,
             'paginator': paginator,
+            'page_range': page_range,
             'suggestion': None,
         }
 
