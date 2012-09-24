@@ -643,7 +643,10 @@ class ElasticsearchSearchBackend(BaseSearchBackend):
                 field_mapping["term_vector"] = "with_positions_offsets"
 
                 if not hasattr(field_class, 'facet_for') and not field_class.field_type in('ngram', 'edge_ngram'):
-                    field_mapping["analyzer"] = "snowball"
+                    if field_class.analyzer is None:
+                        field_mapping["analyzer"] = "snowball"
+                    else:
+                        field_mapping["analyzer"] = field_class.analyzer
 
             mapping[field_class.index_fieldname] = field_mapping
 
